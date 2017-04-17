@@ -10,6 +10,8 @@ The class [CoffeeMachinePromise.scala](src/main/scala/com/parallel/CoffeeMachine
 
 The class [CoffeeMachinePromiseHigherOrder.scala](src/main/scala/com/parallel/CoffeeMachinePromiseHigherOrder.scala) is an evolution of the last CoffeeMachine but now with Higher-Order functions. With Higher-Order functions we can make use of the DRY principle (Don't Repeat Yourself).
 
-The class [CoffeeMachineActor.scala](src/main/scala/com/parallel/CoffeeMachineActor.scala) is an implementation of the CoffeeMachine using Actors from Akka package. Each job of the CoffeeMachine is using one different actor to not block the mean task (make a cappuccino).
+The class [CoffeeMachineActor.scala](src/main/scala/com/parallel/CoffeeMachineActor.scala) is an implementation of the CoffeeMachine using Actors from Akka package. Each job of the CoffeeMachine is using one different actor to not block the main task (make a cappuccino).
 
+
+The class [CoffeeMachineActorSupervisor.scala](src/main/scala/com/parallel/supervisors/CoffeeMachineActorSupervisor.scala] and all the classes on the package [supervisors](src/main/scala/com/parallel/supervisors/) represent all actors of the CoffeeMachine with Akka. There are two main actors [CappuccinoActor](src/main/scala/com/parallel/supervisors/CappuccinoActor.scala) and [TeaActor](src/main/scala/com/parallel/supervisors/TeaActor.scala). These actors supervisors. All the other actors are Children Jobs that can fail and continue due an Exception.
 
