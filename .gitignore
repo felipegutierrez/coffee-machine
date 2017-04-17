@@ -5,5 +5,7 @@
 .project
 .settings
 /target/
+/project/*
+.gitignore
 .cache-tests
 

@@ -1,6 +1,6 @@
 # coffee-machine
 
-This is a project to practive Scala with Akka. It is based on activator-akka-scala-seed.
+This is a project to practice Scala with Akka. It is based on activator-akka-scala-seed.
 
 The package [sequential](src/main/scala/com/sequential/) has the class [CoffeeMachineSeq.scala](src/main/scala/com/sequential/CoffeeMachineSeq.scala). This class represents a sequential steps to make a Cappuccino.
 
