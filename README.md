@@ -10,5 +10,6 @@ The class [CoffeeMachinePromise.scala](src/main/scala/com/parallel/CoffeeMachine
 
 The class [CoffeeMachinePromiseHigherOrder.scala](src/main/scala/com/parallel/CoffeeMachinePromiseHigherOrder.scala) is an evolution of the last CoffeeMachine but now with Higher-Order functions. With Higher-Order functions we can make use of the DRY principle (Don't Repeat Yourself).
 
+The class [CoffeeMachineActor.scala](src/main/scala/com/parallel/CoffeeMachineActor.scala) is an implementation of the CoffeeMachine using Actors from Akka package. Each job of the CoffeeMachine is using one different actor to not block the mean task (make a cappuccino).
 
 
