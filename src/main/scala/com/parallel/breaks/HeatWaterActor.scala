@@ -13,7 +13,6 @@ import com.parallel.breaks.WaterStorageActor.WaterMsg
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.OneForOneStrategy
-import akka.actor.Props
 import akka.actor.SupervisorStrategy.Escalate
 import akka.actor.SupervisorStrategy.Restart
 import akka.actor.actorRef2Scala
@@ -21,14 +20,12 @@ import akka.util.Timeout
 
 object HeatWaterActor {
 
-  val props = Props[HeatWaterActor]
-
   case class WaterBoilingException(msg: String) extends Exception(msg)
 
-  class HeatWaterActor extends Actor {
+  class HeatWaterActor(actorRef: ActorRef) extends Actor {
 
     implicit val timeout = Timeout(10.seconds)
-    var waterStorageActor: Option[ActorRef] = None
+    private val waterStorageActor = context.actorOf(WaterStorageActor.props, "CombineActor")
 
     override def supervisorStrategy = OneForOneStrategy() {
       case we: WaterLackException =>
@@ -40,8 +37,8 @@ object HeatWaterActor {
     }
 
     def receive = {
-      case GetWaterAndHeatMsg(other, water) => waterStorageActor.get ! GetWaterMsg(water, other)
-      case WaterMsg(water, actorRef) => {
+      case GetWaterAndHeatMsg(water) => waterStorageActor ! GetWaterMsg(water)
+      case WaterMsg(water) => {
         Thread.sleep(3000)
         val waterHeated = new Water(water.qtd, 85)
         println(s"hot, it's hot! sending HeatWaterDoneMsg [${waterHeated.temperature}]")
@@ -59,8 +56,7 @@ object HeatWaterActor {
     }
 
     def initWaterStorage() {
-      waterStorageActor = Some(context.watch(context.actorOf(WaterStorageActor.props, name = "WaterStorageActor")))
-      waterStorageActor.get ! InitWaterStorageMsg
+      waterStorageActor ! InitWaterStorageMsg
     }
   }
 

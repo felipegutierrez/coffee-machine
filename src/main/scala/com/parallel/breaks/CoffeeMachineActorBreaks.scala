@@ -5,6 +5,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 import com.parallel.breaks.CappuccinoActor.Cappuccino
+import com.parallel.breaks.CappuccinoActor.CappuccinoActor
 import com.parallel.breaks.CappuccinoActor.CappuccinoInit
 import com.parallel.breaks.CappuccinoActor.CappuccinoMsg
 import com.parallel.breaks.CombineActor.CombineException
@@ -14,6 +15,7 @@ import com.parallel.breaks.GrindActor.CoffeeBeans
 import com.parallel.breaks.GrindActor.GrindingException
 import com.parallel.breaks.HeatWaterActor.WaterBoilingException
 import com.parallel.breaks.TeaActor.Tea
+import com.parallel.breaks.TeaActor.TeaActor
 import com.parallel.breaks.TeaActor.TeaInit
 import com.parallel.breaks.TeaActor.TeaMsg
 import com.parallel.breaks.WaterStorageActor.WaterLackException
@@ -27,19 +29,17 @@ import akka.util.Timeout
 
 object CoffeeMachineActorBreaks extends App {
 
-  val props = Props[CoffeeMachineActorBreaks]
-
   class CoffeeMachineActorBreaks extends Actor {
-    private val cappuccinoActor = context.actorOf(CappuccinoActor.props, "CappuccinoActor")
-    private val teaActor = context.actorOf(TeaActor.props, "TeaActor")
+    private val cappuccinoActor = context.actorOf(Props(new CappuccinoActor(self)), "CappuccinoActor")
+    private val teaActor = context.actorOf(Props(new TeaActor(self)), "TeaActor")
     def receive = {
       case CappuccinoMsg(beans, time) => {
-        cappuccinoActor ! CappuccinoInit(beans, time, self)
+        cappuccinoActor ! CappuccinoInit(beans, time)
         sender ! "We are making your Cappuccino..."
       }
       case Cappuccino(value) => println(value)
       case TeaMsg(grass, time) => {
-        teaActor ! TeaInit(grass, time, self)
+        teaActor ! TeaInit(grass, time)
         sender ! "We are making your Tea..."
       }
       case Tea(value) => println(value)
@@ -47,7 +47,7 @@ object CoffeeMachineActorBreaks extends App {
   }
 
   val system = ActorSystem("CoffeeMachineActorSupervisor")
-  val coffeeMachineActorBreaks = system.actorOf(CoffeeMachineActorBreaks.props, "CoffeeMachineActorBreaks")
+  val coffeeMachineActorBreaks = system.actorOf(Props(new CoffeeMachineActorBreaks()), "CoffeeMachineActorBreaks")
 
   implicit val timeout = Timeout(3 seconds)
 

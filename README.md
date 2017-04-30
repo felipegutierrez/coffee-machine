@@ -17,3 +17,8 @@ The class [CoffeeMachineActorSupervisor.scala](src/main/scala/com/parallel/super
 
 The class [CoffeeMachineActorScheduler.scala](src/main/scala/com/parallel/scheduler/CoffeeMachineActorScheduler.scala) and all the classess on the package [scheduler](src/main/scala/com/parallel/scheduler/) represent all actors of the CoffeeMachine with Akka using Supervisor strategy and a scheduler. The [scheduler](http://doc.akka.io/docs/akka/current/scala/scheduler.html) fill the [WaterStorageActor.scala](src/main/scala/com/parallel/scheduler/WaterStorageActor.scala) each 3 seconds. When we ask for Tea or Cappuccino it is necessary 4 buckets of Water (unit to represent quantity). If there is no enough Water the `WaterLackException` is throwed and the [OneForOneStrategy](http://doc.akka.io/docs/akka/current/scala/fault-tolerance.html) makes a Fault Tolerance strategy to wait 1 second and ask for Water again.
 
+
+The class [CoffeeMachineActorBreaks.scala](src/main/scala/com/parallel/breaks/CoffeeMachineActorBreaks.scala) and all the classes on the package [breaks](src/main/scala/com/parallel/breaks/) represent all actor of the CoffeeMachine with Akka using Supervisor with Restart and Resume strategy. The actors now have an ActoreRef on the constructor.
+
+
+

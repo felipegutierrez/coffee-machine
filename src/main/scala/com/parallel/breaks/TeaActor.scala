@@ -2,14 +2,17 @@ package com.parallel.breaks
 
 import scala.concurrent.duration.DurationInt
 
+import com.parallel.breaks.CombineActor.CombineActor
 import com.parallel.breaks.CombineActor.CombineException
 import com.parallel.breaks.CombineActor.CombineTeaMsg
 import com.parallel.breaks.FrothMilkActor.FrothingException
 import com.parallel.breaks.GrassActor.Grass
+import com.parallel.breaks.GrassActor.GrassActor
 import com.parallel.breaks.GrassActor.GrassDoneMsg
 import com.parallel.breaks.GrassActor.GrassMsg
 import com.parallel.breaks.GrassActor.GroundGrass
 import com.parallel.breaks.GrindActor.GrindingException
+import com.parallel.breaks.HeatWaterActor.HeatWaterActor
 import com.parallel.breaks.HeatWaterActor.WaterBoilingException
 import com.parallel.breaks.WaterStorageActor.GetWaterAndHeatMsg
 import com.parallel.breaks.WaterStorageActor.HeatWaterDoneMsg
@@ -28,16 +31,14 @@ import akka.actor.actorRef2Scala
 
 object TeaActor {
 
-  val props = Props[TeaActor]
-  case class TeaInit(grass: Grass, time: Long, actorRef: ActorRef)
+  case class TeaInit(grass: Grass, time: Long)
   case class TeaMsg(grass: Grass, time: Long)
   case class Tea(value: String)
 
-  class TeaActor extends Actor {
-    private val grassActor = context.actorOf(GrassActor.props, "GrassActor")
-    private val heatWaterActor = context.actorOf(HeatWaterActor.props, "HeatWaterActor")
-    private val combineActor = context.actorOf(CombineActor.props, "CombineActor")
-    var coffeeMachine: Option[ActorRef] = None
+  class TeaActor(coffeeMachine: ActorRef) extends Actor {
+    private val grassActor = context.actorOf(Props(new GrassActor(self)), "GrassActor")
+    private val heatWaterActor = context.actorOf(Props(new HeatWaterActor(self)), "HeatWaterActor")
+    private val combineActor = context.actorOf(Props(new CombineActor(self)), "CombineActor")
     var water: Water = new Water(0, 20)
     var groundGrass: Option[GroundGrass] = None
     var start: Long = 0
@@ -55,7 +56,7 @@ object TeaActor {
         heatWater
         Resume
       case ce: CombineException =>
-        println(s"CombineException -> Restart: [${ce.getMessage}]")
+        println(s"CombineException -> Restart: [${ce.getMessage}]. You have to order again, sorry.")
         Restart
       case fe: FrothingException =>
         println(s"FrothingException -> Stop: [${fe.getMessage}]")
@@ -65,13 +66,12 @@ object TeaActor {
         Escalate
     }
 
-    def getGrass(grass: Grass) = grassActor ! GrassMsg(self, grass)
-    def heatWater = heatWaterActor ! GetWaterAndHeatMsg(self, water)
+    def getGrass(grass: Grass) = grassActor ! GrassMsg(grass)
+    def heatWater = heatWaterActor ! GetWaterAndHeatMsg(water)
 
     def receive = {
-      case TeaInit(grass, time, actorRef) => {
+      case TeaInit(grass, time) => {
         println(s"Starting CappuccinoInit $time with actors")
-        if (!coffeeMachine.isDefined) coffeeMachine = Some(actorRef)
         println(s"[${grassActor.path}]")
         println(s"[${heatWaterActor.path}]")
         start = time
@@ -84,7 +84,7 @@ object TeaActor {
         groundGrass = Some(ground)
         if (HeatWaterActor.temperatureOkay(water)) {
           println(s"temeperature is OK so we can combine =) with [${combineActor.path}]")
-          combineActor ! CombineTeaMsg(self, groundGrass, water)
+          combineActor ! CombineTeaMsg(groundGrass, water)
         }
       }
       case HeatWaterDoneMsg(w) => {
@@ -92,11 +92,11 @@ object TeaActor {
         water = w
         if (GrassActor.groundGrass(groundGrass)) {
           println(s"ground grass are OK so we can combine =) with [${combineActor.path}]")
-          combineActor ! CombineTeaMsg(self, groundGrass, water)
+          combineActor ! CombineTeaMsg(groundGrass, water)
         }
       }
       case Tea(tea) => {
-        coffeeMachine.get ! Tea(s"Here is your [$tea] in ${System.currentTimeMillis() - start} miliseconds")
+        coffeeMachine ! Tea(s"Here is your [$tea] in ${System.currentTimeMillis() - start} miliseconds")
       }
     }
   }

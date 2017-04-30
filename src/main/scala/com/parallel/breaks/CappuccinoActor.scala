@@ -2,21 +2,26 @@ package com.parallel.breaks
 
 import scala.concurrent.duration.DurationInt
 
+import com.parallel.breaks.BrewActor.BrewActor
 import com.parallel.breaks.BrewActor.BrewMsg
 import com.parallel.breaks.BrewActor.Espresso
 import com.parallel.breaks.BrewActor.EspressoMsg
+import com.parallel.breaks.CombineActor.CombineActor
 import com.parallel.breaks.CombineActor.CombineCappuccinoMsg
 import com.parallel.breaks.CombineActor.CombineException
+import com.parallel.breaks.FrothMilkActor.FrothMilkActor
 import com.parallel.breaks.FrothMilkActor.FrothMilkDoneMsg
 import com.parallel.breaks.FrothMilkActor.FrothMilkMsg
 import com.parallel.breaks.FrothMilkActor.FrothedMilk
 import com.parallel.breaks.FrothMilkActor.FrothingException
 import com.parallel.breaks.FrothMilkActor.Milk
 import com.parallel.breaks.GrindActor.CoffeeBeans
+import com.parallel.breaks.GrindActor.GrindActor
 import com.parallel.breaks.GrindActor.GrindDoneMsg
 import com.parallel.breaks.GrindActor.GrindMsg
 import com.parallel.breaks.GrindActor.GrindingException
 import com.parallel.breaks.GrindActor.GroundCoffee
+import com.parallel.breaks.HeatWaterActor.HeatWaterActor
 import com.parallel.breaks.HeatWaterActor.WaterBoilingException
 import com.parallel.breaks.WaterStorageActor.GetWaterAndHeatMsg
 import com.parallel.breaks.WaterStorageActor.HeatWaterDoneMsg
@@ -35,18 +40,16 @@ import akka.actor.actorRef2Scala
 
 object CappuccinoActor {
 
-  val props = Props[CappuccinoActor]
-  case class CappuccinoInit(beans: CoffeeBeans, time: Long, actorRef: ActorRef)
+  case class CappuccinoInit(beans: CoffeeBeans, time: Long)
   case class CappuccinoMsg(beans: CoffeeBeans, time: Long)
   case class Cappuccino(value: String)
 
-  class CappuccinoActor extends Actor {
-    private val grindActor = context.actorOf(GrindActor.props, "GrindActor")
-    private val heatWaterActor = context.actorOf(HeatWaterActor.props, "HeatWaterActor")
-    private val frothMilkActor = context.actorOf(FrothMilkActor.props, "FrothMilkActor")
-    private val brewActor = context.actorOf(BrewActor.props, "BrewActor")
-    private val combineActor = context.actorOf(CombineActor.props, "CombineActor")
-    var coffeeMachine: Option[ActorRef] = None
+  class CappuccinoActor(coffeeMachine: ActorRef) extends Actor {
+    private val grindActor = context.actorOf(Props(new GrindActor(self)), "GrindActor")
+    private val heatWaterActor = context.actorOf(Props(new HeatWaterActor(self)), "HeatWaterActor")
+    private val frothMilkActor = context.actorOf(Props(new FrothMilkActor(self)), "FrothMilkActor")
+    private val brewActor = context.actorOf(Props(new BrewActor(self)), "BrewActor")
+    private val combineActor = context.actorOf(Props(new CombineActor(self)), "CombineActor")
     var water: Water = new Water(0, 20)
     var groundCoffee: Option[GroundCoffee] = None
     var frothedMilk: Option[FrothedMilk] = None
@@ -67,7 +70,7 @@ object CappuccinoActor {
         heatWater
         Resume
       case ce: CombineException =>
-        println(s"CombineException -> Restart: [${ce.getMessage}]")
+        println(s"CombineException -> Restart: [${ce.getMessage}]. You have to order again, sorry.")
         Restart
       case fe: FrothingException =>
         println(s"FrothingException -> Stop: [${fe.getMessage}]")
@@ -77,16 +80,15 @@ object CappuccinoActor {
         Escalate
     }
 
-    def grind(beans: CoffeeBeans) = grindActor ! GrindMsg(self, beans)
-    def heatWater = heatWaterActor ! GetWaterAndHeatMsg(self, water)
-    def frothMilk = frothMilkActor ! FrothMilkMsg(self, new Milk("milk"))
-    def brew = brewActor ! BrewMsg(self, groundCoffee, water)
-    def combine = combineActor ! CombineCappuccinoMsg(self, espresso, frothedMilk)
+    def grind(beans: CoffeeBeans) = grindActor ! GrindMsg(beans)
+    def heatWater = heatWaterActor ! GetWaterAndHeatMsg(water)
+    def frothMilk = frothMilkActor ! FrothMilkMsg(new Milk("milk"))
+    def brew = brewActor ! BrewMsg(groundCoffee, water)
+    def combine = combineActor ! CombineCappuccinoMsg(espresso, frothedMilk)
 
     def receive = {
-      case CappuccinoInit(beans, time, actorRef) => {
+      case CappuccinoInit(beans, time) => {
         println(s"Starting CappuccinoInit $time with actors")
-        if (!coffeeMachine.isDefined) coffeeMachine = Some(actorRef)
         println(s"[${grindActor.path}]")
         println(s"[${heatWaterActor.path}]")
         println(s"[${frothMilkActor.path}]")
@@ -129,7 +131,7 @@ object CappuccinoActor {
         }
       }
       case Cappuccino(cappuccino) => {
-        coffeeMachine.get ! Cappuccino(s"Here is your [$cappuccino] in ${System.currentTimeMillis() - start} miliseconds")
+        coffeeMachine ! Cappuccino(s"Here is your [$cappuccino] in ${System.currentTimeMillis() - start} miliseconds")
       }
     }
   }

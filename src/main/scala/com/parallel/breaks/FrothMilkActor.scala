@@ -2,7 +2,6 @@ package com.parallel.breaks
 
 import akka.actor.Actor
 import akka.actor.ActorRef
-import akka.actor.Props
 import akka.actor.actorRef2Scala
 
 object FrothMilkActor {
@@ -10,15 +9,13 @@ object FrothMilkActor {
   type Milk = String
   type FrothedMilk = String
 
-  val props = Props[FrothMilkActor]
-
-  case class FrothMilkMsg(other: ActorRef, milk: Milk)
+  case class FrothMilkMsg(milk: Milk)
   case class FrothMilkDoneMsg(milk: Milk)
   case class FrothingException(msg: String) extends Exception(msg)
 
-  class FrothMilkActor extends Actor {
+  class FrothMilkActor(other: ActorRef) extends Actor {
     def receive = {
-      case FrothMilkMsg(other, milk) => {
+      case FrothMilkMsg(milk) => {
         println("milk frothing system engaged!")
         Thread.sleep(3000)
         println(s"shutting down milk frothing system. with [${other.path}]")

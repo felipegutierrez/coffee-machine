@@ -2,22 +2,19 @@ package com.parallel.breaks
 
 import akka.actor.Actor
 import akka.actor.ActorRef
-import akka.actor.Props
 import akka.actor.actorRef2Scala
 
 object GrassActor {
   type Grass = String
   type GroundGrass = String
 
-  val props = Props[GrassActor]
-
-  case class GrassMsg(other: ActorRef, grass: Grass)
+  case class GrassMsg(grass: Grass)
   case class GrassDoneMsg(grass: GroundGrass)
   case class GrassException(msg: String) extends Exception(msg)
 
-  class GrassActor extends Actor {
+  class GrassActor(other: ActorRef) extends Actor {
     def receive = {
-      case GrassMsg(other, grass) => {
+      case GrassMsg(grass) => {
         println("start collecting grass...")
         Thread.sleep(2000)
         println(s"finished collecting grass...  with [${other.path}]")
