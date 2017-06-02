@@ -21,4 +21,11 @@ The class [CoffeeMachineActorScheduler.scala](src/main/scala/com/parallel/schedu
 The class [CoffeeMachineActorBreaks.scala](src/main/scala/com/parallel/breaks/CoffeeMachineActorBreaks.scala) and all the classes on the package [breaks](src/main/scala/com/parallel/breaks/) represent all actor of the CoffeeMachine with Akka using Supervisor with Restart and Resume strategy. The actors now have an ActoreRef on the constructor.
 
 
+The class [RatingsCounter.scala](src/main/scala/com/spark/counter/RatingsCounter.scala) represents the first example of Spark + Scala program of this CoffeeMachine. I just created this class and imported spark dependencies to the project.
+
+
+
+
+
+
 
