@@ -23,8 +23,7 @@ The class [CoffeeMachineActorBreaks.scala](src/main/scala/com/parallel/breaks/Co
 
 The class [RatingsCounter.scala](src/main/scala/com/spark/counter/RatingsCounter.scala) represents the first example of Spark + Scala program of this CoffeeMachine. I just created this class and imported spark dependencies to the project.
 
-
-
+The class [SeveralSorts.scala](src/main/scala/com/spark/sort/SeveralSorts.scala) has several ways to sort a list of integers.
 
 
 

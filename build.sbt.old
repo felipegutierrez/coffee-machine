@@ -2,7 +2,7 @@ name := """coffee-machine"""
 
 version := "1.0"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.6"
 
 val sparkVersion = "1.6.1"
 
