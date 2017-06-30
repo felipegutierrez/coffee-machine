@@ -26,5 +26,8 @@ The class [RatingsCounter.scala](src/main/scala/com/spark/counter/RatingsCounter
 The class [SeveralSorts.scala](src/main/scala/com/spark/sort/SeveralSorts.scala) has several ways to sort a list of integers.
 
 
+The class [CoffeeMachineActorFSM.scala](src/main/scala/com/parallel/fsm/CoffeeMachineActorFSM.scala) and all the classes on the package [fsm](src/main/scala/com/parallel/fsm/) represent all actors of the CoffeeMachine working with a [Finite State Machene](http://doc.akka.io/docs/akka/snapshot/scala/fsm.html). The Coffee Machine has 4 states: On, Off, Running and Idle. The user has to execute Events to get his coffee and the events change the states of the Coffee Machine.
+
+
 
 
