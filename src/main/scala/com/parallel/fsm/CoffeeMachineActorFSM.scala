@@ -1,21 +1,15 @@
 package com.parallel.fsm
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-import com.parallel.fsm.CappuccinoActor.Cappuccino
-import com.parallel.fsm.CappuccinoActor.CappuccinoMsg
-import com.parallel.fsm.CombineActor.CombineException
-import com.parallel.fsm.FrothMilkActor.FrothingException
+import com.parallel.fsm.CappuccinoActor.CappuccinoActor
+import com.parallel.fsm.CappuccinoActor.CappuccinoInit
 import com.parallel.fsm.GrassActor.Grass
 import com.parallel.fsm.GrindActor.CoffeeBeans
-import com.parallel.fsm.GrindActor.GrindingException
-import com.parallel.fsm.HeatWaterActor.WaterBoilingException
-import com.parallel.fsm.TeaActor.Tea
-import com.parallel.fsm.TeaActor.TeaMsg
-import com.parallel.fsm.WaterStorageActor.WaterLackException
+import com.parallel.fsm.TeaActor.TeaActor
+import com.parallel.fsm.TeaActor.TeaInit
 
 import akka.actor.ActorSystem
 import akka.actor.FSM
@@ -32,6 +26,9 @@ object CoffeeMachineActorFSM extends App {
   final case class InsertMoney(coins: Double)
   final case class DebitMoney(coins: Double)
   final case class AskState()
+  final case class AskAmount()
+  final case class OrderCappuccino()
+  final case class OrderTea()
 
   // states
   sealed trait CoffeeMachineState
@@ -45,44 +42,76 @@ object CoffeeMachineActorFSM extends App {
   case object Money extends CoffeeMachineData
   case object NoMoney extends CoffeeMachineData
 
+  val system = ActorSystem("CoffeeMachineActorFSM")
+  val coffeeMachineActorFSM = system.actorOf(Props(new CoffeeMachineActorFSM()), "CoffeeMachineActorFSM")
+
   class CoffeeMachineActorFSM extends FSM[CoffeeMachineState, CoffeeMachineData] {
 
+    val cappuccinoActor = context.actorOf(Props(new CappuccinoActor(coffeeMachineActorFSM)), "CappuccinoActor")
+    val teaActor = context.actorOf(Props(new TeaActor(self)), "TeaActor")
+
+    var amount: Double = 0.0
     startWith(Off, NoMoney)
 
     when(Off) {
       case Event(PowerOn, _) => goto(On) using NoMoney
       case Event(AskState, _) =>
-        sender ! "State: Off"
+        sender ! s"State: Off - Total: $amount"
         stay
     }
 
     when(On) {
-      case Event(PowerOff, _)    => goto(Off) using NoMoney
-      case Event(InsertMoney, _) => goto(Running) using Money
+      case Event(PowerOff, _) => goto(Off) using NoMoney
+      case Event(InsertMoney(c), _) =>
+        amount = amount + c
+        println(s"Receive money: $c . Total: $amount")
+        stay
+      case Event(DebitMoney(c), _) =>
+        amount = amount - c
+        stay
       case Event(AskState, _) =>
-        sender ! "State: On"
+        sender ! s"State: On - Total: $amount"
+        stay
+      case Event(AskAmount, _) =>
+        sender ! amount
+        stay
+      case Event(OrderCappuccino, _) =>
+        cappuccinoActor ! CappuccinoInit(new CoffeeBeans("brasilian beans"), System.currentTimeMillis())
+        sender ! "We are making your Cappuccino..."
+        stay
+      case Event(OrderTea, _) =>
+        teaActor ! TeaInit(new Grass("lemon"), System.currentTimeMillis())
+        sender ! "We are making your Tea..."
         stay
     }
 
     when(Running) {
-      case Event(DebitMoney, _) => goto(Idle) using NoMoney
+      case Event(DebitMoney(c), _) =>
+        amount = amount - c
+        stay
       case Event(AskState, _) =>
-        sender ! "State: Running"
+        sender ! s"State: Running - Total: $amount"
         stay
     }
 
     when(Idle) {
-      case Event(PowerOff, _)    => goto(Off) using NoMoney
-      case Event(InsertMoney, _) => goto(Running) using Money
+      case Event(PowerOff, _) => goto(Off) using NoMoney
+      case Event(InsertMoney(c), _) =>
+        amount = amount + c
+        println(s"Receive money: $c . Total: $amount")
+        goto(On) using Money
+      case Event(DebitMoney(c), _) =>
+        amount = amount - c
+        goto(On) using Money
       case Event(AskState, _) =>
-        sender ! "State: Idle"
-        stay
+        sender ! s"State: Idle - Total: $amount"
+        goto(On) using NoMoney
     }
 
     whenUnhandled {
       case Event(e, s) =>
         log.warning("received unhandled request {} in state {}/{}", e, stateName, s)
-        goto(Idle) using NoMoney
+        stay
     }
 
     onTransition {
@@ -95,25 +124,7 @@ object CoffeeMachineActorFSM extends App {
     }
 
     initialize()
-
-    //    private val cappuccinoActor = context.actorOf(Props(new CappuccinoActor(self)), "CappuccinoActor")
-    //    private val teaActor = context.actorOf(Props(new TeaActor(self)), "TeaActor")
-    //    def receive = {
-    //      case CappuccinoMsg(beans, time) => {
-    //        cappuccinoActor ! CappuccinoInit(beans, time)
-    //        sender ! "We are making your Cappuccino..."
-    //      }
-    //      case Cappuccino(value) => println(value)
-    //      case TeaMsg(grass, time) => {
-    //        teaActor ! TeaInit(grass, time)
-    //        sender ! "We are making your Tea..."
-    //      }
-    //      case Tea(value) => println(value)
-    //    }
   }
-
-  val system = ActorSystem("CoffeeMachineActorFSM")
-  val coffeeMachineActorFSM = system.actorOf(Props(new CoffeeMachineActorFSM()), "CoffeeMachineActorFSM")
 
   menu
 
@@ -130,6 +141,8 @@ object CoffeeMachineActorFSM extends App {
       println("= 2  = Coffee Machine turn on")
       println("= 3  = Coffee Machine turn off")
       println("= 4  = Coffee Machine insert money")
+      println("= 5  = Order Cappuccino")
+      println("= 6  = Order Tea")
       print("= ?  = ")
       val input = scala.io.StdIn.readLine()
       input match {
@@ -175,46 +188,26 @@ object CoffeeMachineActorFSM extends App {
             }
           }
           println()
+        case "5" =>
+          val result: Future[Any] = coffeeMachineActorFSM ? AskAmount
+          val amount = Await.result(result, timeout.duration).asInstanceOf[Double]
+          if (amount >= 0.5) {
+            coffeeMachineActorFSM ! OrderCappuccino
+            coffeeMachineActorFSM ! DebitMoney(0.5)
+          } else {
+            println(s"There is no enogh money to order a Cappuccino. Amount: $amount")
+          }
+        case "6" =>
+          val result: Future[Any] = coffeeMachineActorFSM ? AskAmount
+          val amount = Await.result(result, timeout.duration).asInstanceOf[Double]
+          if (amount >= 0.25) {
+            coffeeMachineActorFSM ! OrderTea
+            coffeeMachineActorFSM ! DebitMoney(0.25)
+          } else {
+            println(s"There is no enogh money to order a Tea. Amount: $amount")
+          }
         case _ => println("wrong option")
       }
     }
-  }
-
-  def older() {
-    val system = ActorSystem("CoffeeMachineActorFSM")
-    val coffeeMachineActorFSM = system.actorOf(Props(new CoffeeMachineActorFSM()), "CoffeeMachineActorFSM")
-
-    implicit val timeout = Timeout(3 seconds)
-
-    val futureCappuccino: Future[Any] = coffeeMachineActorFSM ? CappuccinoMsg(new CoffeeBeans("brasilian beans"), System.currentTimeMillis())
-    futureCappuccino.onSuccess {
-      case Cappuccino(value) => println(s"Cappuccino onSuccess $value")
-      case value: String     => println(s"onSuccess $value")
-    }
-    futureCappuccino.onFailure {
-      case GrindingException(value)     => println(s"GrindingException $value")
-      case WaterBoilingException(value) => println(s"WaterBoilingException $value")
-      case WaterLackException(value)    => println(s"WaterLackException $value")
-      case CombineException(value)      => println(s"CombineException $value")
-      case FrothingException(value)     => println(s"FrothingException $value")
-      case value                        => println(s"onFailure $value")
-    }
-
-    val futureTea: Future[Any] = coffeeMachineActorFSM ? TeaMsg(new Grass("lemon"), System.currentTimeMillis())
-    futureTea.onSuccess {
-      case Tea(value)    => println(s"Tea onSuccess $value")
-      case value: String => println(s"onSuccess $value")
-    }
-    futureTea.onFailure {
-      case GrindingException(value)     => println(s"GrindingException $value")
-      case WaterBoilingException(value) => println(s"WaterBoilingException $value")
-      case WaterLackException(value)    => println(s"WaterLackException $value")
-      case CombineException(value)      => println(s"CombineException $value")
-      case FrothingException(value)     => println(s"FrothingException $value")
-      case value                        => println(s"onFailure $value")
-    }
-
-    Thread.sleep(30000)
-    system.shutdown()
   }
 }
