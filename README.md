@@ -29,5 +29,7 @@ The class [SeveralSorts.scala](src/main/scala/com/spark/sort/SeveralSorts.scala)
 The class [CoffeeMachineActorFSM.scala](src/main/scala/com/parallel/fsm/CoffeeMachineActorFSM.scala) and all the classes on the package [fsm](src/main/scala/com/parallel/fsm/) represent all actors of the CoffeeMachine working with a [Finite State Machene](http://doc.akka.io/docs/akka/snapshot/scala/fsm.html). The Coffee Machine has 4 states: On, Off, Running and Idle. The user has to execute Events to get his coffee and the events change the states of the Coffee Machine.
 
 
+The class [CoffeeMachinePersistentActor.scala](src/main/scala/com/parallel/persistent/CoffeeMachinePersistentActor.scala) is a Coffee Machine with a cash box to save coins in a [Persistent Actor](http://doc.akka.io/docs/akka/snapshot/scala/persistence.html) implemented using the class [CashBoxPersistentActor.scala](src/main/scala/com/parallel/persistent/CashBoxPersistentActor.scala). If you charge the Coffee Machine with coins and terminate (Ctrl+c) and restart the Coffee Machine, your coins will be sabed there. Because we are using persistent Actors.
+
 
 
