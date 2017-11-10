@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.11",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
   "com.typesafe.akka" %% "akka-persistence" % "2.4.8",
+  "com.typesafe.akka" %% "akka-stream" % "2.4.8",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
@@ -17,7 +18,8 @@ libraryDependencies ++= Seq(
   "org.fusesource.leveldbjni"   % "leveldbjni-all"   % "1.8",
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-streaming" % sparkVersion,
-  "org.apache.spark" %% "spark-streaming-twitter" % sparkVersion)
+  "org.apache.spark" %% "spark-streaming-twitter" % sparkVersion,
+  "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.3")
 
 
 resolvers ++= Seq(
