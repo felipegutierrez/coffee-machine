@@ -1,13 +1,18 @@
 package com.streams.first
 
 import java.nio.file.Paths
+
+import scala.BigInt
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.math.BigInt.int2bigInt
+
 import akka.Done
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.IOResult
+import akka.stream.OverflowStrategy
 import akka.stream.ThrottleMode
 import akka.stream.scaladsl.FileIO
 import akka.stream.scaladsl.Flow
@@ -15,8 +20,7 @@ import akka.stream.scaladsl.Keep
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import scala.BigInt
-import scala.math.BigInt.int2bigInt
+import akka.stream.scaladsl.RunnableGraph
 
 final case class Author(handle: String)
 
@@ -60,6 +64,62 @@ object MainSource extends App {
   implicit val system = ActorSystem("reactive-tweets")
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
+
+  // using filter
+  val authorsFilter: Source[Author, NotUsed] =
+    tweets
+      .filter(_.hashtags.contains(akkaTag))
+      .map(_.author)
+  val doneAuthorsFilter: Future[Done] = authorsFilter.runWith(Sink.foreach(println))
+  doneAuthorsFilter.onComplete(_ => println("done authorsFilter..........."))
+
+  // using buffer
+  val authorsBuffer: Source[Author, NotUsed] =
+    tweets
+      .buffer(10, OverflowStrategy.dropHead)
+      .map(_.author)
+  val doneAuthorsBuffer: Future[Done] = authorsBuffer.runWith(Sink.ignore)
+  doneAuthorsBuffer.onComplete(_ => println("done authorsBuffer..........."))
+
+  // using Sink.fold
+  // First we prepare a reusable Flow that will change each incoming tweet into an integer of value 1. 
+  val count: Flow[Tweet, Int, NotUsed] = Flow[Tweet].map(_ => 1)
+  // We’ll use this in order to combine those with a Sink.fold that will sum all Int elements 
+  // of the stream and make its result available as a Future[Int].
+  val sumSink: Sink[Int, Future[Int]] = Sink.fold[Int, Int](0)(_ + _)
+  // Next we connect the tweets stream to count with via.
+  // Finally we connect the Flow to the previously prepared Sink using toMat.
+  // In our example we used the Keep.right predefined function, which tells 
+  // the implementation to only care about the materialized type of the stage 
+  // currently appended to the right. The materialized type of sumSink is Future[Int]
+  val counterGraph: RunnableGraph[Future[Int]] =
+    tweets
+      .via(count)
+      .toMat(sumSink)(Keep.right)
+  // Next we call run() which uses the implicit ActorMaterializer to materialize and run the Flow. 
+  val sum: Future[Int] = counterGraph.run()
+  sum.foreach(c => println(s"Total tweets processed: $c"))
+      
+      
+      
+      
+      
+      
+      
+
+  val hashtags: Source[Hashtag, NotUsed] = tweets.mapConcat(_.hashtags.toList)
+
+  //  val writeAuthors: Sink[Author, NotUsed] = ???
+  //  val writeHashtags: Sink[Hashtag, NotUsed] = ???
+  //  val g = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
+  //    import GraphDSL.Implicits._
+  //    val bcast = b.add(Broadcast[Tweet](2))
+  //    tweets ~> bcast.in
+  //    bcast.out(0) ~> Flow[Tweet].map(_.author) ~> writeAuthors
+  //    bcast.out(1) ~> Flow[Tweet].mapConcat(_.hashtags.toList) ~> writeHashtags
+  //    ClosedShape
+  //  })
+  //  g.run()
 
   // here is where we start to use the source of tweets. we filter
   val done: Future[Done] = tweets
@@ -107,4 +167,5 @@ object MainSource extends App {
     .runWith(lineSink("src/main/output/resultFactorialThrottleToSink.txt"))
 
   resultFactorialThrottleToSink.onComplete(_ => system.terminate())
+
 }
