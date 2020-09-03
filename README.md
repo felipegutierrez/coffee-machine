@@ -1,3 +1,6 @@
+
+[![Build Status](https://api.travis-ci.org/felipegutierrez/coffee-machine.svg?branch=master)](https://travis-ci.org/felipegutierrez/coffee-machine)
+
 # coffee-machine
 
 This is a project to practice Scala with Akka. It is based on activator-akka-scala-seed.
